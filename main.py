@@ -145,7 +145,7 @@ def reconcile(group, args):
                     print(result.stdout)
                     print(result.stderr)
 
-                if args.upgrade and len(result.stderr.strip().splitlines()) <= 3:
+                if args.upgrade and len(result.stderr.strip().splitlines()) <= 6:
                     print(colored(f"No upgrade needed on {node.hostname}", "green"))
                     continue
                 if args.nixos_action == "boot":
@@ -180,7 +180,7 @@ def parse_inventory(inventory: str) -> [Group]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inventory", default="inventory.yaml")
-    parser.add_argument("-n", "--nixos-action", default="boot")
+    parser.add_argument("-n", "--nixos-action", default="switch")
     parser.add_argument("-u", "--upgrade", action="store_true")
     parser.add_argument("--skip-initial-health", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
