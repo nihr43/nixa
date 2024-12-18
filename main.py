@@ -81,7 +81,7 @@ class Host:
 def reconcile(group, args):
     print(
         colored(
-            f"applying template {group.templates[0]} to {[n.hostname for n in group.hosts]}",
+            f"applying template {group.templates[0]} to {group.name}: {[n.hostname for n in group.hosts]}",
             "yellow",
         )
     )
@@ -140,15 +140,9 @@ def reconcile(group, args):
                     print(result.stdout)
                     print(result.stderr)
 
-                no_action = """unpacking channels...
-building Nix...
-building the system configuration...
-updating GRUB 2 menu...
-"""
-
-                if args.upgrade and result.stderr == no_action:
+                if args.upgrade and len(result.stderr.strip().splitlines()) <= 3:
                     print(colored(f"No upgrade needed on {node.hostname}", "green"))
-                    return
+                    continue
                 if args.nixos_action == "boot":
                     node.reboot()
                 if args.upgrade:
