@@ -52,7 +52,7 @@ class Host:
         while i < 300:
             i += 1
             if i % 10 == 0:
-                print("Waiting for {} to become reachable".format(self.name))
+                print("Waiting for {} to become reachable".format(self.hostname))
             try:
                 self.ssh = fabric.Connection(
                     host=self.ip,
