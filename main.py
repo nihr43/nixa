@@ -21,6 +21,10 @@ class Group:
         self.nix_channel = nix_channel
         self.hosts = [Host(h) for h in hosts]
 
+    def upgrade(self, args):
+        for h in self.hosts:
+            h.upgrade(args, self.nix_channel)
+
 
 class Host:
     def __init__(self, ip):
@@ -82,6 +86,49 @@ class Host:
         self.ssh.close()
         self.ssh_ready()
 
+    def upgrade(self, args, nix_channel):
+        result = self.ssh.run("uname -r")
+        initial_kernel = result.stdout.strip()
+        channel_cmd = (
+            f"nix-channel --add https://nixos.org/channels/{nix_channel} nixos"
+        )
+        try:
+            self.ssh.run(channel_cmd)
+        except UnexpectedExit as e:
+            print(e)
+            sys.exit(1)
+
+        nixos_cmd = f"nixos-rebuild {args.nixos_action} --upgrade"
+        try:
+            result = self.ssh.run(nixos_cmd)
+        except UnexpectedExit as e:
+            print(e)
+            print(
+                f"`nixos-rebuild {args.nixos_action} --upgrade` failed on {self.hostname}.  Changes reverted."
+            )
+            sys.exit(1)
+        else:
+            if args.verbose:
+                print(result.stdout)
+                print(result.stderr)
+
+        if len(result.stderr.strip().splitlines()) <= 6:
+            print(colored(f"No upgrade needed on {self.hostname}", "green"))
+            return
+
+        if args.nixos_action == "boot":
+            self.reboot()
+
+        result = self.ssh.run("uname -r")
+        final_kernel = result.stdout.strip()
+        if final_kernel != initial_kernel:
+            print(
+                colored(
+                    f"Kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
+                    "yellow",
+                )
+            )
+
 
 def reconcile(group, args):
     print(
@@ -116,20 +163,8 @@ def reconcile(group, args):
             print(diff_formatted)
             node.ssh.put(local=output_file_path, remote="/etc/nixos/configuration.nix")
 
-        if diff or args.upgrade:
             print(f"Rebuilding NixOS on {node.hostname}")
-            if args.upgrade:
-                result = node.ssh.run("uname -r")
-                initial_kernel = result.stdout.strip()
-                channel_cmd = f"nix-channel --add https://nixos.org/channels/{group.nix_channel} nixos"
-                try:
-                    node.ssh.run(channel_cmd)
-                except UnexpectedExit as e:
-                    print(e)
-                    sys.exit(1)
-                nixos_cmd = f"nixos-rebuild {args.nixos_action} --upgrade"
-            else:
-                nixos_cmd = f"nixos-rebuild {args.nixos_action}"
+            nixos_cmd = f"nixos-rebuild {args.nixos_action}"
 
             try:
                 result = node.ssh.run(nixos_cmd)
@@ -145,21 +180,8 @@ def reconcile(group, args):
                     print(result.stdout)
                     print(result.stderr)
 
-                if args.upgrade and len(result.stderr.strip().splitlines()) <= 6:
-                    print(colored(f"No upgrade needed on {node.hostname}", "green"))
-                    continue
                 if args.nixos_action == "boot":
                     node.reboot()
-                if args.upgrade:
-                    result = node.ssh.run("uname -r")
-                    final_kernel = result.stdout.strip()
-                    if final_kernel != initial_kernel:
-                        print(
-                            colored(
-                                f"Kernel upgraded from {initial_kernel} to {final_kernel} on {node.hostname}",
-                                "yellow",
-                            )
-                        )
         else:
             print(colored("No action needed on {}".format(node.hostname), "green"))
 
@@ -199,7 +221,10 @@ def main():
     groups = parse_inventory(args.inventory)
 
     for g in groups:
-        reconcile(g, args)
+        if args.upgrade:
+            g.upgrade(args)
+        else:
+            reconcile(g, args)
 
 
 if __name__ == "__main__":
