@@ -1,0 +1,10 @@
+---
+
+routers:
+  hosts:
+    - 10.38.154.98
+    - 10.38.154.88
+    - 10.38.154.161
+  templates:
+    - lxc.nix
+  nix-channel: nixos-24.05
