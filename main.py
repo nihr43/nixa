@@ -11,7 +11,7 @@ from io import StringIO
 from invoke.exceptions import UnexpectedExit
 from termcolor import colored
 from jinja2 import Environment, FileSystemLoader
-from paramiko.ssh_exception import NoValidConnectionsError
+from paramiko.ssh_exception import NoValidConnectionsError, SSHException
 
 
 class Group:
@@ -62,7 +62,12 @@ class Host:
                 self.ssh.run("hostname")
                 print("{} is reachable".format(self.hostname))
                 return
-            except (TimeoutError, EOFError, NoValidConnectionsError):
+            except (
+                TimeoutError,
+                EOFError,
+                NoValidConnectionsError,
+                SSHException,
+            ):
                 time.sleep(1)
                 continue
 
