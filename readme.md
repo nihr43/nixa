@@ -79,3 +79,55 @@ Rebuilding NixOS on 0a6dd2c3-bc17-59c5-859b-b9c9921b7961
  
 Rebuilding NixOS on 86da48cb-c4ad-548b-9859-dfd7a3ee1d87
 ```
+
+If an error is found in the configuration, the changes will be reverted and the run aborted:
+
+```
+nix-shell . --run 'python3 main.py'
+d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19 is reachable
+0a6dd2c3-bc17-59c5-859b-b9c9921b7961 is reachable
+86da48cb-c4ad-548b-9859-dfd7a3ee1d87 is reachable
+applying template lxc.nix to routers: ['d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19', '0a6dd2c3-bc17-59c5-859b-b9c9921b7961', '86da48cb-c4ad-548b-9859-dfd7a3ee1d87']
+d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19 modified:
+--- 
+
++++ 
+
+@@ -10,6 +10,8 @@
+
+   environment.systemPackages = with pkgs; [
+     busybox
+   ];
++
++  networking.nomeservers = ["1.1.1.1"];
+ 
+   networking = {
+     dhcpcd.enable = false;
+Rebuilding NixOS on d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19
+Encountered a bad command exit code!
+
+Command: 'nixos-rebuild boot'
+
+Exit code: 1
+
+Stdout:
+
+
+
+Stderr:
+
+             |                  ^
+          323|         _module = checked (config._module);
+
+       (stack trace truncated; use '--show-trace' to show the full trace)
+
+       error: The option `networking.nomeservers' does not exist. Definition values:
+       - In `/etc/nixos/configuration.nix':
+           [
+             "1.1.1.1"
+           ]
+
+
+`nixos-rebuild` failed on d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19.  Changes reverted.
+error: Recipe `apply` failed on line 2 with exit code 1
+```
