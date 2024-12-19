@@ -23,6 +23,7 @@ class Group:
         self.hosts = [Host(h) for h in hosts]
 
     def upgrade(self, args):
+        print(colored(f"{self.name}:", "magenta"))
         for h in self.hosts:
             h.upgrade(args, self.nix_channel)
 
@@ -90,8 +91,8 @@ class Host:
     def upgrade(self, args, nix_channel):
         result = self.ssh.run("uname -r")
         initial_kernel = result.stdout.strip()
-        print(colored(f"upgrading {self.hostname}", "yellow"))
-        print(f"enforcing nixos channel {nix_channel}")
+        print(colored(f"--> upgrading {self.hostname}:", "yellow"))
+        print(f"    enforcing nixos channel {nix_channel}")
         channel_cmd = (
             f"nix-channel --add https://nixos.org/channels/{nix_channel} nixos"
         )
@@ -120,17 +121,17 @@ class Host:
         )
         if paths_fetched_match:
             num_paths = paths_fetched_match.group(1)
-            print(colored(f"{num_paths} paths fetched", "green"))
+            print(colored(f"    {num_paths} paths fetched", "green"))
 
         derivations_built_match = re.search(
             r"these (\d+) derivations will be built", result.stderr
         )
         if derivations_built_match:
             num_paths = derivations_built_match.group(1)
-            print(colored(f"{num_paths} derivations built", "green"))
+            print(colored(f"    {num_paths} derivations built", "green"))
 
         if not paths_fetched_match and not derivations_built_match:
-            print(f"No upgrades performed on {self.hostname}")
+            print(f"    no upgrades performed on {self.hostname}")
             return
 
         if args.nixos_action == "boot":
@@ -141,7 +142,7 @@ class Host:
         if final_kernel != initial_kernel:
             print(
                 colored(
-                    f"Kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
+                    f"    kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
                     "yellow",
                 )
             )
@@ -151,13 +152,14 @@ def reconcile(group, args):
     print(
         colored(
             f"applying template {group.templates[0]} to {group.name}: {[n.hostname for n in group.hosts]}",
-            "yellow",
+            "magenta",
         )
     )
     file_loader = FileSystemLoader("templates/")
     env = Environment(loader=file_loader)
 
     for node in group.hosts:
+        print(colored(f"--> {node.hostname}:", "yellow"))
         template = env.get_template(group.templates[0])
         output = template.render(attrs=node)
 
@@ -180,7 +182,7 @@ def reconcile(group, args):
             print(diff_formatted)
             node.ssh.put(local=output_file_path, remote="/etc/nixos/configuration.nix")
 
-            print(f"Rebuilding NixOS on {node.hostname}")
+            print(f"--> rebuilding NixOS on {node.hostname}")
             nixos_cmd = f"nixos-rebuild {args.nixos_action}"
 
             try:
@@ -200,7 +202,7 @@ def reconcile(group, args):
                 if args.nixos_action == "boot":
                     node.reboot()
         else:
-            print(colored("No action needed on {}".format(node.hostname), "green"))
+            print(colored("    no action needed", "green"))
 
 
 def parse_inventory(inventory: str) -> [Group]:
