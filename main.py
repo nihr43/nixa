@@ -6,6 +6,7 @@ import uuid
 import argparse
 import ipaddress
 import fabric
+import re
 from os import mkdir
 from io import StringIO
 from invoke.exceptions import UnexpectedExit
@@ -89,6 +90,8 @@ class Host:
     def upgrade(self, args, nix_channel):
         result = self.ssh.run("uname -r")
         initial_kernel = result.stdout.strip()
+        print(colored(f"upgrading {self.hostname}", "yellow"))
+        print(f"enforcing nixos channel {nix_channel}")
         channel_cmd = (
             f"nix-channel --add https://nixos.org/channels/{nix_channel} nixos"
         )
@@ -112,8 +115,22 @@ class Host:
                 print(result.stdout)
                 print(result.stderr)
 
-        if len(result.stderr.strip().splitlines()) <= 6:
-            print(colored(f"No upgrade needed on {self.hostname}", "green"))
+        paths_fetched_match = re.search(
+            r"these (\d+) paths will be fetched", result.stderr
+        )
+        if paths_fetched_match:
+            num_paths = paths_fetched_match.group(1)
+            print(colored(f"{num_paths} paths fetched", "green"))
+
+        derivations_built_match = re.search(
+            r"these (\d+) derivations will be built", result.stderr
+        )
+        if derivations_built_match:
+            num_paths = derivations_built_match.group(1)
+            print(colored(f"{num_paths} derivations built", "green"))
+
+        if not paths_fetched_match and not derivations_built_match:
+            print(f"No upgrades performed on {self.hostname}")
             return
 
         if args.nixos_action == "boot":
