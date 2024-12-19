@@ -131,3 +131,28 @@ Stderr:
 `nixos-rebuild` failed on d14d90c2-4e69-5cb0-ac9d-e1ca0ce71c19.  Changes reverted.
 error: Recipe `apply` failed on line 2 with exit code 1
 ```
+
+## OS upgrades
+
+`nixa` provides a mechanism for nixos-native OS upgrades:
+
+```
+nixa > nix-shell . --run 'python3 main.py --upgrade'
+f676954e-858b-5ebc-91b7-70aeda560465 is reachable
+0a6dd2c3-bc17-59c5-859b-b9c9921b7961 is reachable
+86da48cb-c4ad-548b-9859-dfd7a3ee1d87 is reachable
+upgrading f676954e-858b-5ebc-91b7-70aeda560465
+enforcing nixos channel nixos-24.11
+45 paths fetched
+200 derivations built
+upgrading 0a6dd2c3-bc17-59c5-859b-b9c9921b7961
+enforcing nixos channel nixos-24.11
+45 paths fetched
+199 derivations built
+upgrading 86da48cb-c4ad-548b-9859-dfd7a3ee1d87
+enforcing nixos channel nixos-24.11
+45 paths fetched
+199 derivations built
+```
+
+Whatever channel `nix-channel:` is set to in the inventory is enforced.  For regular 'daily' upgrades, just run `--upgrade`.  For Release upgrades, go increment the channel in the inventory, then run `--upgrade`.
