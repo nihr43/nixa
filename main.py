@@ -27,6 +27,67 @@ class Group:
         for h in self.hosts:
             h.upgrade(args, self.nix_channel)
 
+    def reconcile(self, args):
+        print(
+            colored(
+                f"applying template {self.templates[0]} to {self.name}: {[n.hostname for n in self.hosts]}",
+                "magenta",
+            )
+        )
+        file_loader = FileSystemLoader("templates/")
+        env = Environment(loader=file_loader)
+
+        for node in self.hosts:
+            print(colored(f"--> {node.hostname}:", "yellow"))
+            template = env.get_template(self.templates[0])
+            output = template.render(attrs=node)
+
+            output_file_path = "artifacts/{}".format(node.hostname)
+            with open(output_file_path, "w") as f:
+                f.write(output)
+
+            with open(output_file_path, "r") as local_file:
+                local_config = local_file.read()
+
+            remote_config = node.ssh.run("cat /etc/nixos/configuration.nix").stdout
+
+            diff = list(
+                difflib.unified_diff(
+                    remote_config.splitlines(), local_config.splitlines()
+                )
+            )
+
+            if diff:
+                diff_formatted = colored("\n".join(diff), "yellow")
+                print(diff_formatted)
+                node.ssh.put(
+                    local=output_file_path, remote="/etc/nixos/configuration.nix"
+                )
+
+                print(f"--> rebuilding NixOS on {node.hostname}")
+                nixos_cmd = f"nixos-rebuild {args.nixos_action}"
+
+                try:
+                    result = node.ssh.run(nixos_cmd)
+                except UnexpectedExit as e:
+                    # if rebuild faild, write the original back
+                    membuf = StringIO(remote_config)
+                    node.ssh.put(membuf, remote="/etc/nixos/configuration.nix")
+                    print(e)
+                    print(
+                        f"`nixos-rebuild` failed on {node.hostname}.  Changes reverted."
+                    )
+                    sys.exit(1)
+                else:
+                    if args.verbose:
+                        print(result.stdout)
+                        print(result.stderr)
+
+                    if args.nixos_action == "boot":
+                        node.reboot()
+            else:
+                print(colored("    no action needed", "green"))
+
 
 class Host:
     def __init__(self, ip):
@@ -137,72 +198,15 @@ class Host:
         if args.nixos_action == "boot":
             self.reboot()
 
-        result = self.ssh.run("uname -r")
-        final_kernel = result.stdout.strip()
-        if final_kernel != initial_kernel:
-            print(
-                colored(
-                    f"    kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
-                    "yellow",
+            result = self.ssh.run("uname -r")
+            final_kernel = result.stdout.strip()
+            if final_kernel != initial_kernel:
+                print(
+                    colored(
+                        f"    kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
+                        "yellow",
+                    )
                 )
-            )
-
-
-def reconcile(group, args):
-    print(
-        colored(
-            f"applying template {group.templates[0]} to {group.name}: {[n.hostname for n in group.hosts]}",
-            "magenta",
-        )
-    )
-    file_loader = FileSystemLoader("templates/")
-    env = Environment(loader=file_loader)
-
-    for node in group.hosts:
-        print(colored(f"--> {node.hostname}:", "yellow"))
-        template = env.get_template(group.templates[0])
-        output = template.render(attrs=node)
-
-        output_file_path = "artifacts/{}".format(node.hostname)
-        with open(output_file_path, "w") as f:
-            f.write(output)
-
-        with open(output_file_path, "r") as local_file:
-            local_config = local_file.read()
-
-        remote_config = node.ssh.run("cat /etc/nixos/configuration.nix").stdout
-
-        diff = list(
-            difflib.unified_diff(remote_config.splitlines(), local_config.splitlines())
-        )
-
-        if diff:
-            print("{} modified:".format(node.hostname))
-            diff_formatted = colored("\n".join(diff), "yellow")
-            print(diff_formatted)
-            node.ssh.put(local=output_file_path, remote="/etc/nixos/configuration.nix")
-
-            print(f"--> rebuilding NixOS on {node.hostname}")
-            nixos_cmd = f"nixos-rebuild {args.nixos_action}"
-
-            try:
-                result = node.ssh.run(nixos_cmd)
-            except UnexpectedExit as e:
-                # if rebuild faild, write the original back
-                membuf = StringIO(remote_config)
-                node.ssh.put(membuf, remote="/etc/nixos/configuration.nix")
-                print(e)
-                print(f"`nixos-rebuild` failed on {node.hostname}.  Changes reverted.")
-                sys.exit(1)
-            else:
-                if args.verbose:
-                    print(result.stdout)
-                    print(result.stderr)
-
-                if args.nixos_action == "boot":
-                    node.reboot()
-        else:
-            print(colored("    no action needed", "green"))
 
 
 def parse_inventory(inventory: str) -> [Group]:
@@ -243,7 +247,7 @@ def main():
         if args.upgrade:
             g.upgrade(args)
         else:
-            reconcile(g, args)
+            g.reconcile(args)
 
 
 if __name__ == "__main__":
