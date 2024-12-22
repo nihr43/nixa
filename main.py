@@ -20,7 +20,10 @@ class Group:
         self.name = name
         self.templates = templates
         self.nix_channel = nix_channel
-        self.hosts = [Host(h) for h in hosts]
+
+        self.hosts = []
+        for h, hostvars in hosts.items():
+            self.hosts.append(Host(h, hostvars))
 
     def upgrade(self, args):
         print(colored(f"{self.name}:", "magenta"))
@@ -40,7 +43,7 @@ class Group:
         for node in self.hosts:
             print(colored(f"--> {node.hostname}:", "yellow"))
             template = env.get_template(self.templates[0])
-            output = template.render(attrs=node)
+            output = template.render(attrs=node, hostvars=node.hostvars)
 
             output_file_path = "artifacts/{}".format(node.hostname)
             with open(output_file_path, "w") as f:
@@ -90,12 +93,13 @@ class Group:
 
 
 class Host:
-    def __init__(self, ip):
+    def __init__(self, ip, hostvars):
         self.ip = ip
         self.hostname = str(uuid.uuid5(uuid.NAMESPACE_OID, self.ip))
         self.ssh_ready()
         self.interface = self.get_interface()
         self.gateway = self.get_gateway()
+        self.hostvars = hostvars
 
     def get_interface(self):
         result = self.ssh.run("ip r get 1.1.1.1 | awk '/via/{print $5}'")
