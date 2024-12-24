@@ -4,7 +4,6 @@ import yaml
 import difflib
 import uuid
 import argparse
-import ipaddress
 import fabric
 import re
 from os import mkdir
@@ -97,26 +96,7 @@ class Host:
         self.ip = ip
         self.hostname = str(uuid.uuid5(uuid.NAMESPACE_OID, self.ip))
         self.ssh_ready()
-        self.interface = self.get_interface()
-        self.gateway = self.get_gateway()
         self.hostvars = hostvars
-
-    def get_interface(self):
-        result = self.ssh.run("ip r get 1.1.1.1 | awk '/via/{print $5}'")
-        interface = result.stdout.strip()
-        if interface.startswith(("eth", "eno", "enp")):
-            return interface
-        else:
-            raise NotImplementedError(interface)
-
-    def get_gateway(self):
-        result = self.ssh.run("ip r get 1.1.1.1 | awk '/via/{print $3}'")
-        gw = result.stdout.strip()
-        try:
-            ipaddress.IPv4Address(gw)
-            return gw
-        except ipaddress.AddressValueError as e:
-            raise e
 
     def ssh_ready(self):
         i = 0
