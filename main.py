@@ -193,17 +193,33 @@ class Host:
                 )
 
 
-def parse_inventory(inventory: str) -> [Group]:
+def parse_inventory(inventory: str, limit: str) -> [Group]:
     groups = []
     with open(inventory, "r") as f:
         yam = yaml.safe_load(f)
-        for group, values in yam.items():
-            groups.append(
-                Group(
-                    group, values["hosts"], values["templates"], values["nix-channel"]
+        if not limit:
+            for group, values in yam.items():
+                groups.append(
+                    Group(
+                        group,
+                        values["hosts"],
+                        values["templates"],
+                        values["nix-channel"],
+                    )
                 )
-            )
-    return groups
+            return groups
+        else:
+            for group, values in yam.items():
+                if group == limit:
+                    groups.append(
+                        Group(
+                            group,
+                            values["hosts"],
+                            values["templates"],
+                            values["nix-channel"],
+                        )
+                    )
+            return groups
 
 
 def main():
@@ -215,6 +231,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("--private-key", type=str)
     parser.add_argument("-r", "--reboot", action="store_true")
+    parser.add_argument("--limit", type=str)
     args = parser.parse_args()
 
     if args.nixos_action != "boot" and args.nixos_action != "switch":
@@ -225,7 +242,7 @@ def main():
     except FileExistsError:
         pass
 
-    groups = parse_inventory(args.inventory)
+    groups = parse_inventory(args.inventory, args.limit)
 
     for g in groups:
         if args.upgrade:
