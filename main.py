@@ -210,7 +210,7 @@ def parse_inventory(inventory: str, limit: str) -> [Group]:
             return groups
         else:
             for group, values in yam.items():
-                if group == limit:
+                if group in limit:
                     groups.append(
                         Group(
                             group,
