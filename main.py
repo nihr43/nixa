@@ -181,7 +181,7 @@ class Host:
             print(f"    no upgrades performed on {self.hostname}")
             return
 
-        if args.nixos_action == "boot":
+        if args.action == "boot":
             self.reboot()
 
             result = self.ssh.run("uname -r")
