@@ -67,7 +67,7 @@ class Group:
                 )
 
                 print(f"--> rebuilding NixOS on {node.hostname}")
-                nixos_cmd = f"nixos-rebuild {args.nixos_action}"
+                nixos_cmd = f"nixos-rebuild {args.action}"
 
                 try:
                     result = node.ssh.run(nixos_cmd)
@@ -85,7 +85,7 @@ class Group:
                         print(result.stdout)
                         print(result.stderr)
 
-                    if args.nixos_action == "boot":
+                    if args.action == "boot":
                         node.reboot()
             else:
                 print(colored("    no action needed", "green"))
@@ -147,13 +147,13 @@ class Host:
             print(e)
             sys.exit(1)
 
-        nixos_cmd = f"nixos-rebuild {args.nixos_action} --upgrade"
+        nixos_cmd = f"nixos-rebuild {args.action} --upgrade"
         try:
             result = self.ssh.run(nixos_cmd)
         except UnexpectedExit as e:
             print(e)
             print(
-                f"`nixos-rebuild {args.nixos_action} --upgrade` failed on {self.hostname}.  Changes reverted."
+                f"`nixos-rebuild {args.action} --upgrade` failed on {self.hostname}.  Changes reverted."
             )
             sys.exit(1)
         else:
@@ -225,7 +225,7 @@ def parse_inventory(inventory: str, limit: str) -> [Group]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inventory", default="inventory.yaml")
-    parser.add_argument("-n", "--nixos-action", default="switch")
+    parser.add_argument("-n", "--action", default="switch")
     parser.add_argument("-u", "--upgrade", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-r", "--reboot", action="store_true")
@@ -233,8 +233,8 @@ def main():
     parser.add_argument("--limit", type=str)
     args = parser.parse_args()
 
-    if args.nixos_action != "boot" and args.nixos_action != "switch":
-        raise AssertionError("--nixos-action must be one of boot, switch")
+    if args.action != "boot" and args.action != "switch":
+        raise AssertionError("--action must be one of boot, switch")
 
     try:
         mkdir("artifacts")
