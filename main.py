@@ -108,7 +108,9 @@ class Host:
                 self.ssh = fabric.Connection(
                     host=self.ip,
                     user="root",
-                    config=fabric.config.Config(overrides={"run": {"hide": True}}),
+                    config=fabric.config.Config(
+                        overrides={"run": {"hide": True}, "connect_timeout": 1}
+                    ),
                 )
                 self.ssh.run("hostname")
                 print("{} is reachable".format(self.hostname))
