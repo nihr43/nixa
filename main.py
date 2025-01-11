@@ -11,6 +11,7 @@ from invoke.exceptions import UnexpectedExit
 from termcolor import colored
 from jinja2 import Environment, FileSystemLoader
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
+from concurrent.futures import ThreadPoolExecutor
 
 
 class Group:
@@ -25,8 +26,8 @@ class Group:
 
     def upgrade(self, args):
         print(colored(f"{self.name}:", "magenta"))
-        for h in self.hosts:
-            h.upgrade(args, self.nix_channel)
+        with ThreadPoolExecutor(max_workers=args.parallel) as pool:
+            {pool.submit(h.upgrade, args, self.nix_channel): h for h in self.hosts}
 
     def reconcile(self, args):
         print(
@@ -153,9 +154,7 @@ class Host:
             result = self.ssh.run(nixos_cmd)
         except UnexpectedExit as e:
             print(e)
-            print(
-                f"`nixos-rebuild {args.action} --upgrade` failed on {self.name}.  Changes reverted."
-            )
+            print(f"`nixos-rebuild {args.action} --upgrade` failed on {self.name}.")
             sys.exit(1)
         else:
             if args.verbose:
@@ -177,7 +176,7 @@ class Host:
             print(colored(f"{num_paths} derivations built", "green"))
 
         if not paths_fetched_match and not derivations_built_match:
-            print(f"no upgrades performed on {self.name}")
+            print(colored(f"no upgrades needed on {self.name}", "green"))
             return
 
         if args.action == "boot":
@@ -232,6 +231,7 @@ def main():
     parser.add_argument("-r", "--reboot", action="store_true")
     parser.add_argument("--private-key", type=str)
     parser.add_argument("--limit", type=str)
+    parser.add_argument("-p", "--parallel", type=int, default=1)
     args = parser.parse_args()
 
     if args.action != "boot" and args.action != "switch":
