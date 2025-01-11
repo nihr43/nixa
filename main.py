@@ -2,7 +2,6 @@ import sys
 import time
 import yaml
 import difflib
-import uuid
 import argparse
 import fabric
 import re
@@ -32,7 +31,7 @@ class Group:
     def reconcile(self, args):
         print(
             colored(
-                f"applying template {self.templates[0]} to {self.name}: {[n.hostname for n in self.hosts]}",
+                f"applying template {self.templates[0]} to {self.name}: {[n.name for n in self.hosts]}",
                 "magenta",
             )
         )
@@ -40,11 +39,11 @@ class Group:
         env = Environment(loader=file_loader)
 
         for node in self.hosts:
-            print(colored(f"--> {node.hostname}:", "yellow"))
+            print(colored(f"{node.name}:", "yellow"))
             template = env.get_template(self.templates[0])
             output = template.render(attrs=node, hostvars=node.hostvars)
 
-            output_file_path = "artifacts/{}".format(node.hostname)
+            output_file_path = "artifacts/{}".format(node.name)
             with open(output_file_path, "w") as f:
                 f.write(output)
 
@@ -66,7 +65,7 @@ class Group:
                     local=output_file_path, remote="/etc/nixos/configuration.nix"
                 )
 
-                print(f"--> rebuilding NixOS on {node.hostname}")
+                print(f"rebuilding NixOS on {node.name}")
                 nixos_cmd = f"nixos-rebuild {args.action}"
 
                 try:
@@ -76,9 +75,7 @@ class Group:
                     membuf = StringIO(remote_config)
                     node.ssh.put(membuf, remote="/etc/nixos/configuration.nix")
                     print(e)
-                    print(
-                        f"`nixos-rebuild` failed on {node.hostname}.  Changes reverted."
-                    )
+                    print(f"`nixos-rebuild` failed on {node.name}.  Changes reverted.")
                     sys.exit(1)
                 else:
                     if args.verbose:
@@ -88,13 +85,15 @@ class Group:
                     if args.action == "boot":
                         node.reboot()
             else:
-                print(colored("    no action needed", "green"))
+                print(colored("no action needed", "green"))
 
 
 class Host:
-    def __init__(self, ip, hostvars):
-        self.ip = ip
-        self.hostname = str(uuid.uuid5(uuid.NAMESPACE_OID, self.ip))
+    def __init__(self, name, hostvars):
+        """
+        'name' might be a ip or a hostname
+        """
+        self.name = name
         self.ssh_ready()
         self.hostvars = hostvars
 
@@ -103,17 +102,17 @@ class Host:
         while i < 300:
             i += 1
             if i % 10 == 0:
-                print("Waiting for {} to become reachable".format(self.hostname))
+                print("Waiting for {} to become reachable".format(self.name))
             try:
                 self.ssh = fabric.Connection(
-                    host=self.ip,
+                    host=self.name,
                     user="root",
                     config=fabric.config.Config(
                         overrides={"run": {"hide": True}, "connect_timeout": 1}
                     ),
                 )
                 self.ssh.run("hostname")
-                print("{} is reachable".format(self.hostname))
+                print("{} is reachable".format(self.name))
                 return
             except (
                 TimeoutError,
@@ -127,7 +126,7 @@ class Host:
         raise TimeoutError
 
     def reboot(self):
-        print(f"Rebooting {self.hostname}")
+        print(f"Rebooting {self.name}")
         # if we just reboot, the first reconnect attempt may erroneously
         # succeed before the box has actually shut down
         self.ssh.run("systemctl stop sshd && reboot")
@@ -138,8 +137,8 @@ class Host:
     def upgrade(self, args, nix_channel):
         result = self.ssh.run("uname -r")
         initial_kernel = result.stdout.strip()
-        print(colored(f"--> upgrading {self.hostname}:", "yellow"))
-        print(f"    enforcing nixos channel {nix_channel}")
+        print(colored(f"upgrading {self.name}:", "yellow"))
+        print(f"enforcing nixos channel {nix_channel}")
         channel_cmd = (
             f"nix-channel --add https://nixos.org/channels/{nix_channel} nixos"
         )
@@ -155,7 +154,7 @@ class Host:
         except UnexpectedExit as e:
             print(e)
             print(
-                f"`nixos-rebuild {args.action} --upgrade` failed on {self.hostname}.  Changes reverted."
+                f"`nixos-rebuild {args.action} --upgrade` failed on {self.name}.  Changes reverted."
             )
             sys.exit(1)
         else:
@@ -168,17 +167,17 @@ class Host:
         )
         if paths_fetched_match:
             num_paths = paths_fetched_match.group(1)
-            print(colored(f"    {num_paths} paths fetched", "green"))
+            print(colored(f"{num_paths} paths fetched", "green"))
 
         derivations_built_match = re.search(
             r"these (\d+) derivations will be built", result.stderr
         )
         if derivations_built_match:
             num_paths = derivations_built_match.group(1)
-            print(colored(f"    {num_paths} derivations built", "green"))
+            print(colored(f"{num_paths} derivations built", "green"))
 
         if not paths_fetched_match and not derivations_built_match:
-            print(f"    no upgrades performed on {self.hostname}")
+            print(f"no upgrades performed on {self.name}")
             return
 
         if args.action == "boot":
@@ -189,7 +188,7 @@ class Host:
             if final_kernel != initial_kernel:
                 print(
                     colored(
-                        f"    kernel upgraded from {initial_kernel} to {final_kernel} on {self.hostname}",
+                        f"kernel upgraded from {initial_kernel} to {final_kernel} on {self.name}",
                         "yellow",
                     )
                 )
