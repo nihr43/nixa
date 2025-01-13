@@ -1,0 +1,32 @@
+---
+routers:
+  hosts:
+    10.0.0.0:
+      hostname: spine-green-476d
+      stateversion: 24.11
+      loopback: 10.0.0.0
+      as_number: 64512
+      bgp_interfaces:
+        - enp3s0
+        - enp4s0
+        - enp0s20f0
+        - enp0s20f1
+        - enp0s20f2
+        - enp0s20f3
+    10.0.0.1:
+      hostname: spine-blue-db5d
+      stateversion: 24.11
+      loopback: 10.0.0.1
+      as_number: 64512
+      bgp_interfaces:
+        - enp3s0
+        - enp4s0
+        - enp0s20f0
+        - enp0s20f1
+        - enp0s20f2
+        - enp0s20f3
+  modules:
+    - bgp.nix
+    - serial.nix
+    - common.nix
+  nix-channel: nixos-24.11
