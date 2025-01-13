@@ -31,7 +31,7 @@ class Group:
     def reconcile(self, args):
         print(
             colored(
-                f"applying template {self.templates[0]} to {self.name}: {[n.name for n in self.hosts]}",
+                f"applying modules {self.templates} to {self.name}: {[n.name for n in self.hosts]}",
                 "magenta",
             )
         )
