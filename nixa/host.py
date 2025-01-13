@@ -85,7 +85,6 @@ class Host:
                     )
                 )
             except UnexpectedExit as e:
-                print(e)
                 if "No such file or directory" in str(e):
                     created = True
                     print(colored(f"{t} created", "yellow"))
