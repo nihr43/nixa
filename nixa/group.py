@@ -11,9 +11,12 @@ class Group:
         self.templates = templates
         self.nix_channel = nix_channel
 
-        self.hosts = []
-        for h, hostvars in hosts.items():
-            self.hosts.append(Host(h, hostvars, self.templates))
+        def create_host(args):
+            h, hostvars = args
+            return Host(h, hostvars, self.templates)
+
+        with ThreadPoolExecutor() as pool:
+            self.hosts = list(pool.map(create_host, hosts.items()))
 
     def upgrade(self, args):
         print(colored(f"{self.name}:", "magenta"))
