@@ -14,3 +14,6 @@ test: lint
 lint:
   black .
   flake8 . --ignore=E501,W503
+
+req: lint
+  nix-shell --run 'pip freeze > requirements.txt'
