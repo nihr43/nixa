@@ -1,20 +1,24 @@
 import sys
+import difflib
 import time
 import fabric
 import re
+from io import StringIO
 from invoke.exceptions import UnexpectedExit
 from termcolor import colored
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
+from jinja2 import Environment, FileSystemLoader
 
 
 class Host:
-    def __init__(self, name, hostvars):
+    def __init__(self, name, hostvars, templates):
         """
         'name' might be a ip or a hostname
         """
         self.name = name
         self.ssh_ready()
         self.hostvars = hostvars
+        self.templates = templates
 
     def ssh_ready(self):
         i = 0
@@ -52,6 +56,54 @@ class Host:
         time.sleep(10)
         self.ssh.close()
         self.ssh_ready()
+
+    def reconcile(self, args):
+        file_loader = FileSystemLoader("templates/")
+        env = Environment(loader=file_loader)
+
+        template = env.get_template(self.templates[0])
+        output = template.render(attrs=self, hostvars=self.hostvars)
+
+        output_file_path = "artifacts/{}".format(self.name)
+        with open(output_file_path, "w") as f:
+            f.write(output)
+
+        with open(output_file_path, "r") as local_file:
+            local_config = local_file.read()
+
+        remote_config = self.ssh.run("cat /etc/nixos/configuration.nix").stdout
+
+        diff = list(
+            difflib.unified_diff(remote_config.splitlines(), local_config.splitlines())
+        )
+
+        print(colored(f"{self.name}:", "yellow"))
+        if diff:
+            diff_formatted = colored("\n".join(diff), "yellow")
+            print(diff_formatted)
+            self.ssh.put(local=output_file_path, remote="/etc/nixos/configuration.nix")
+
+            print(f"rebuilding NixOS on {self.name}")
+            nixos_cmd = f"nixos-rebuild {args.action}"
+
+            try:
+                result = self.ssh.run(nixos_cmd)
+            except UnexpectedExit as e:
+                # if rebuild faild, write the original back
+                membuf = StringIO(remote_config)
+                self.ssh.put(membuf, remote="/etc/nixos/configuration.nix")
+                print(e)
+                print(f"`nixos-rebuild` failed on {self.name}.  Changes reverted.")
+                sys.exit(1)
+            else:
+                if args.verbose:
+                    print(result.stdout)
+                    print(result.stderr)
+
+                if args.action == "boot":
+                    self.reboot()
+        else:
+            print(colored("no action needed", "green"))
 
     def upgrade(self, args, nix_channel):
         result = self.ssh.run("uname -r")
