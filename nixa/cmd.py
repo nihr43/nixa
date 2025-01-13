@@ -16,7 +16,7 @@ def parse_inventory(inventory: str, limit: str) -> [Group]:
                     Group(
                         group,
                         values["hosts"],
-                        values["templates"],
+                        values["modules"],
                         values["nix-channel"],
                     )
                 )
@@ -28,7 +28,7 @@ def parse_inventory(inventory: str, limit: str) -> [Group]:
                         Group(
                             group,
                             values["hosts"],
-                            values["templates"],
+                            values["modules"],
                             values["nix-channel"],
                         )
                     )
