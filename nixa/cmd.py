@@ -38,7 +38,7 @@ def parse_inventory(inventory: str, limit: str) -> [Group]:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--inventory", default="inventory.yaml")
-    parser.add_argument("-n", "--action", default="switch")
+    parser.add_argument("-a", "--action", default="switch")
     parser.add_argument("-u", "--upgrade", action="store_true")
     parser.add_argument("-v", "--verbose", action="store_true")
     parser.add_argument("-r", "--reboot", action="store_true")
