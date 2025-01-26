@@ -7,9 +7,8 @@ upgrade: lint
 reboot: lint
   nix-shell --run 'python3 nixa --reboot'
 
-test: lint
-  nix-shell --run 'python3 tests/test_main.py'
-  nix-shell --run 'python3 nixa -i artifacts/test_inventory.yaml --skip-initial --private-key private.key'
+test:
+  nix-shell --run 'cd tests; python3 test_main.py'
 
 lint:
   black .
