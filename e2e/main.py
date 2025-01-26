@@ -6,7 +6,7 @@ def main():
     count = 2
 
     cleanup(key)
-    c = Cluster(key, count)
+    c = Cluster(key, count)  # noqa
     cleanup(key)
 
 

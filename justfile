@@ -7,7 +7,7 @@ upgrade: lint
 reboot: lint
   nix-shell --run 'python3 nixa --reboot'
 
-test:
+test: lint
   nix-shell --run 'cd e2e; python3 main.py'
 
 lint:
