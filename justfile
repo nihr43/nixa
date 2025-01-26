@@ -8,7 +8,7 @@ reboot: lint
   nix-shell --run 'python3 nixa --reboot'
 
 test:
-  nix-shell --run 'cd tests; python3 test_main.py'
+  nix-shell --run 'cd e2e; python3 main.py'
 
 lint:
   black .
