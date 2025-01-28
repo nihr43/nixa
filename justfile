@@ -8,7 +8,8 @@ reboot: lint
   nix-shell --run 'python3 nixa --reboot'
 
 test: lint
-  nix-shell --run 'cd e2e; python3 main.py'
+  nix-shell --run 'cd e2e; python3 main.py --persist'
+  nix-shell --run 'python3 nixa -i e2e/test-inventory.yaml -p2'
 
 lint:
   black .

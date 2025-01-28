@@ -1,0 +1,10 @@
+nixa-e2e:
+  hosts:
+{% for h in cluster.nodes %}
+    {{h.ip}}:
+      hostname: {{h.name}}
+      stateversion: 24.11
+{% endfor %}
+  modules:
+    - e2e.nix
+  nix-channel: nixos-24.11
