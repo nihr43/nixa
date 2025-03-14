@@ -27,7 +27,6 @@
       router bgp {{hostvars["as_number"]}}
         bgp router-id {{hostvars["loopback"]}}
         bgp fast-convergence
-        bgp bestpath as-path multipath-relax
 {% for i in hostvars["bgp_interfaces"] %}
         neighbor {{i}} interface remote-as external
 {% endfor %}
