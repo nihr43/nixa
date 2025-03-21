@@ -13,6 +13,10 @@ test: lint
   nix-shell --run 'python3 nixa -i test-inventory.yaml --upgrade -p2 -a boot'
   nix-shell --run 'python3 e2e --cleanup'
 
+test-setup: lint
+    nix-shell --run 'python3 e2e --cleanup --deploy --persist'
+    nix-shell --run 'python3 nixa -i test-inventory.yaml -p2'
+
 lint:
   black .
   flake8 . --ignore=E501,W503
