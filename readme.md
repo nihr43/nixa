@@ -115,22 +115,28 @@ rebuilding NixOS on 10.0.0.3
 `nixa` provides a mechanism for nixos-native OS upgrades:
 
 ```
-nixa > nix-shell . --run 'python3 main.py --upgrade'
-f676954e-858b-5ebc-91b7-70aeda560465 is reachable
-0a6dd2c3-bc17-59c5-859b-b9c9921b7961 is reachable
-86da48cb-c4ad-548b-9859-dfd7a3ee1d87 is reachable
-upgrading f676954e-858b-5ebc-91b7-70aeda560465
+nixa > nix-shell --run 'python3 nixa --limit datto -a boot --upgrade'
+10.0.0.2 is reachable
+10.0.0.3 is reachable
+datto:
+upgrading 10.0.0.2:
 enforcing nixos channel nixos-24.11
-45 paths fetched
-200 derivations built
-upgrading 0a6dd2c3-bc17-59c5-859b-b9c9921b7961
+40 paths fetched
+27 derivations built
+Rebooting 10.0.0.2
+Waiting for 10.0.0.2 to become reachable
+Waiting for 10.0.0.2 to become reachable
+10.0.0.2 is reachable
+kernel upgraded from 6.6.82 to 6.6.83 on 10.0.0.2
+upgrading 10.0.0.3:
 enforcing nixos channel nixos-24.11
-45 paths fetched
-199 derivations built
-upgrading 86da48cb-c4ad-548b-9859-dfd7a3ee1d87
-enforcing nixos channel nixos-24.11
-45 paths fetched
-199 derivations built
+40 paths fetched
+27 derivations built
+Rebooting 10.0.0.3
+Waiting for 10.0.0.3 to become reachable
+Waiting for 10.0.0.3 to become reachable
+10.0.0.3 is reachable
+kernel upgraded from 6.6.82 to 6.6.83 on 10.0.0.3
 ```
 
 Whatever channel `nix-channel:` is set to in the inventory is enforced.  For regular 'daily' upgrades, just run `--upgrade`.  For Release upgrades, go increment the channel in the inventory, then run `--upgrade`.
