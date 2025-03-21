@@ -9,8 +9,8 @@ reboot: lint
 
 test: lint
   nix-shell --run 'python3 e2e --cleanup --deploy --persist'
-  nix-shell --run 'python3 nixa -i e2e/test-inventory.yaml -p2'
-  nix-shell --run 'python3 nixa -i e2e/test-inventory.yaml --upgrade -p2 -a boot'
+  nix-shell --run 'python3 nixa -i test-inventory.yaml -p2'
+  nix-shell --run 'python3 nixa -i test-inventory.yaml --upgrade -p2 -a boot'
   nix-shell --run 'python3 e2e --cleanup'
 
 lint:
