@@ -6,7 +6,8 @@ import re
 from invoke.exceptions import UnexpectedExit
 from termcolor import colored
 from paramiko.ssh_exception import NoValidConnectionsError, SSHException
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2.exceptions import UndefinedError
 
 
 class Host:
@@ -57,13 +58,17 @@ class Host:
 
     def reconcile(self, args):
         file_loader = FileSystemLoader("modules/")
-        env = Environment(loader=file_loader)
+        env = Environment(loader=file_loader, undefined=StrictUndefined)
         changed = []
         print(colored(f"{self.name}:", "yellow"))
 
         for t in ["configuration.nix"] + self.templates:
             template = env.get_template(t)
-            output = template.render(modules=self.templates, hostvars=self.hostvars)
+            try:
+                output = template.render(modules=self.templates, hostvars=self.hostvars)
+            except UndefinedError as err:
+                print(colored(f"failed to render {t} for {self.name}: {err}", "red"))
+                sys.exit(1)
 
             output_file_path = f"artifacts/{self.name}_{t}"
             with open(output_file_path, "w") as f:
