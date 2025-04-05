@@ -1,3 +1,4 @@
+import io
 import sys
 import difflib
 import time
@@ -70,12 +71,10 @@ class Host:
                 print(colored(f"failed to render {t} for {self.name}: {err}", "red"))
                 sys.exit(1)
 
-            output_file_path = f"artifacts/{self.name}_{t}"
-            with open(output_file_path, "w") as f:
-                f.write(output)
-
-            with open(output_file_path, "r") as local_file:
-                local_config = local_file.read()
+            local_config_io = io.StringIO()
+            local_config_io.write(output)
+            local_config_io.seek(0)
+            local_config = local_config_io.read()
 
             diff = None
             created = None
@@ -101,7 +100,8 @@ class Host:
 
             if diff or created:
                 changed.append(t)
-                self.ssh.put(local=output_file_path, remote=f"/etc/nixos/{t}")
+                local_config_io.seek(0)
+                self.ssh.put(local=local_config_io, remote=f"/etc/nixos/{t}")
 
         if len(changed) != 0:
             print(f"rebuilding NixOS on {self.name}")
