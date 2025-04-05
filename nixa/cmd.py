@@ -1,7 +1,6 @@
 import sys
 import yaml
 import argparse
-from os import mkdir
 
 from group import Group
 
@@ -49,11 +48,6 @@ def main():
 
     if args.action != "boot" and args.action != "switch":
         raise AssertionError("--action must be one of boot, switch")
-
-    try:
-        mkdir("artifacts")
-    except FileExistsError:
-        pass
 
     groups = parse_inventory(args.inventory, args.limit)
 
