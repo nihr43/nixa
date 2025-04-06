@@ -120,6 +120,7 @@ class Host:
 
                 if args.action == "boot":
                     self.reboot()
+            print(colored(f"success on {self.name}", "green"))
         else:
             print(colored("no action needed", "green"))
 
