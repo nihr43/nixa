@@ -1,8 +1,5 @@
 {
   networking = {
-    hostName = "{{hostvars["hostname"]}}";
-    nameservers = [ "1.1.1.1" ];
-    firewall.enable = false;
     useDHCP = false;
     interfaces.lo.ipv4.addresses = [{
       address = "{{hostvars["loopback"]}}";
