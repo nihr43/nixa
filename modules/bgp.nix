@@ -27,6 +27,9 @@
 {% for i in hostvars["bgp_interfaces"] %}
         neighbor {{i}} interface remote-as external
 {% endfor %}
+{% if hostvars["default_originate"] is defined %}
+        network 0.0.0.0/0
+{% endif %}
         address-family ipv4 unicast
           redistribute connected
 {% for i in hostvars["bgp_interfaces"] %}
